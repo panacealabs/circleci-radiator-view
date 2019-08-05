@@ -28,15 +28,20 @@ function buildBackend(settings, callback) {
       ? settings.repositories.split(',').includes(build.repository)
       : true
   }
+  var workflowFilter = function(build) {
+    return settings.workflows
+      ? settings.workflows.split(',').includes(build.workflow)
+      : true
+  }
 
   return function() {
     backend(settings, function(err, data) {
       if (err) {
         return callback(err)
       }
-      let builds = data.filter(repositoryFilter).filter(branchFilter)
+      let builds = data.filter(repositoryFilter).filter(branchFilter).filter(workflowFilter)
       builds = _.uniqBy(builds, function(b) {
-        return b.repository + b.branch
+        return b.repository + b.branch + b.workflow
       })
       builds = builds.sort(function(a, b) {
         return a.started.getTime() - b.started.getTime()
@@ -163,33 +168,45 @@ var circleBackend = function(settings, resultCallback) {
       if (err) {
         return resultCallback(err)
       }
-      var builds = data.reduce(function(acc, repository) {
+      var buildVariants = data.reduce(function(acc, repository) {
         return acc.concat(
           Object.keys(repository.branches).map(function(branchName) {
             var branch = repository.branches[branchName]
             var hasNeverBuilt = !branch.running_builds && !branch.recent_builds
             if (hasNeverBuilt) {
               console.warn('Repository', repository.reponame, 'has a branch named', branchName, 'that has never been built')
-              return
+              return []
             }
             var buildIsRunning = branch.running_builds.length != 0
             var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
             var status = buildIsRunning ? build.status : build.outcome
-            return {
-              repository: repository.reponame,
-              branch: branchName,
-              started: new Date(build.pushed_at),
-              state: status,
-              commit: {
-                created: new Date(build.pushed_at),
-                author: null,
-                hash: build.vcs_revision
+
+            function formatBuild(workflow, buildStatus) {
+              return {
+                repository: repository.reponame,
+                branch: branchName,
+                workflow: workflow,
+                started: new Date(build.pushed_at),
+                state: buildStatus,
+                commit: {
+                  created: new Date(build.pushed_at),
+                  author: null,
+                  hash: build.vcs_revision
+                }
               }
+            }
+
+            if (settings.expand_workflows && branch.is_using_workflows) {
+              return Object.keys(branch.latest_workflows).map((workflowName) => {
+                return formatBuild(workflowName, branch.latest_workflows[workflowName].status)
+              })
+            } else {
+              return [formatBuild(null, status)]
             }
           })
         )
-      }, []).filter(function (build) { return !!build })
-      resultCallback(undefined, builds)
+      }, [])
+      resultCallback(undefined, _.flatten(buildVariants))
     },
     {
       Accept: 'application/json'

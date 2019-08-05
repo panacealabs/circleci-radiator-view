@@ -41,7 +41,7 @@
     var error = document.getElementById('error')
 
     function createJob(build) {
-      var name = `${build.repository}: ${decodeURIComponent(build.branch)}`
+      var name = `${build.repository}${build.workflow ? ` ${decodeURIComponent(build.workflow)}` : ''}: ${decodeURIComponent(build.branch)}`
       var time = new Date(build.started)
 
       var listItem = document.createElement('li')

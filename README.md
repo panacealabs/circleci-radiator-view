@@ -33,6 +33,8 @@ All options can be set either with a query parameter or from the setup form. The
 | `token`        | The auth token token to be used. **Note:** CircleCI API tokens have read and write access. When you use the query parameter approach the token will be visible in your browser history.       |
 | `repositories` | Declare the wanted repositories in a comma-separated format eg. `my-cool-project,helloWorldProject`. By default all repositories will be shown.                                               |
 | `branch`       | Select the `branch` to show (from all repos found in the API end point). Useful if your repos contain only a single branch (master, release etc) that should be visible in the radiator view. |
+| `expand_workflows` | Optional. If `true`, shows a radiator item per CircleCI workflow |
+| `workflows` | Optional. Declares visible workflows in a comma-separated format. Only effective if `expand_workflows=true` |
 | `url`          | Optional: the Jenkins job URL.                                                                                                                                                                |
 
 #### Examples
