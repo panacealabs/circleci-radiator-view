@@ -29,7 +29,7 @@ function buildBackend(settings, callback) {
       : true
   }
   var workflowFilter = function(build) {
-    return settings.workflows
+    return settings.expand_workflows && settings.workflows
       ? settings.workflows.split(',').includes(build.workflow)
       : true
   }
