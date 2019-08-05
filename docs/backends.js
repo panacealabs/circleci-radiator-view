@@ -177,31 +177,33 @@ var circleBackend = function(settings, resultCallback) {
               console.warn('Repository', repository.reponame, 'has a branch named', branchName, 'that has never been built')
               return []
             }
-            var buildIsRunning = branch.running_builds.length != 0
-            var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
-            var status = buildIsRunning ? build.status : build.outcome
 
-            function formatBuild(workflow, buildStatus) {
+            function formatBuild(workflow, status, startedAt, vcsRevision) {
               return {
                 repository: repository.reponame,
                 branch: branchName,
                 workflow: workflow,
-                started: new Date(build.pushed_at),
-                state: buildStatus,
+                started: new Date(startedAt),
+                state: status,
                 commit: {
-                  created: new Date(build.pushed_at),
+                  created: new Date(startedAt),
                   author: null,
-                  hash: build.vcs_revision
+                  hash: vcsRevision
                 }
               }
             }
 
             if (settings.expand_workflows && branch.is_using_workflows) {
-              return Object.keys(branch.latest_workflows).map((workflowName) => {
-                return formatBuild(workflowName, branch.latest_workflows[workflowName].status)
+              return Object.keys(branch.latest_workflows).map((name) => {
+                var workflow = branch.latest_workflows[name]
+                return formatBuild(name, workflow.status, workflow.created_at, null)
               })
             } else {
-              return [formatBuild(null, status)]
+              var buildIsRunning = branch.running_builds.length != 0
+              var build = buildIsRunning ? branch.running_builds[0] : branch.recent_builds[0]
+              var status = buildIsRunning ? build.status : build.outcome
+              var startedAt = build.pushed_at
+              return [formatBuild(null, status, startedAt, build.vcs_revision)]
             }
           })
         )
